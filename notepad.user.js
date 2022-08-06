@@ -9,191 +9,80 @@
 
 (function() {
     'use strict';
-    class Notepad {
-        elem = {};
-        noteData = {
-            notes: [],
-            current: 0,
-        };
-        currentNote = 0;
-        lastChange = 0;
-        hasChanged = false;
-        constructor() {
-            this.load(this);
-            this.create(this);
-            this.update(this);
-            this.tickRef = setInterval(_=> this.save(this), 500);
-        }
-        create(np) {
-            np.elem.wrap = document.createElement("div");
-            np.elem.wrap.style.height = "90%";
-            np.elem.wrap.style.padding = "10px";
-            np.elem.wrap.style.borderRadius = "32px";
-            np.elem.wrap.style.overflow = "hidden";
-            np.elem.wrap.style.backgroundColor = "rgba(0, 0, 0, 0.1)";
+    const css = document.createElement("style");
+    css.textContent = `
+.d4np_wrap {
+  font-family: poppins;
+  font-weight: 300;
+  height: 90%;
+  padding: 10px 20px 10px 5px;
+  border-radius: 32px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.1);
+}
 
-            const title = document.createElement("input");
-            title.style.width = "100%";
-            title.style.height = "30px";
-            title.style.color = "#FFF";
-            title.style.border = "none";
-            title.style.backgroundColor = "transparent";
-            title.addEventListener("input", evt => {
-                np.lastChange = new Date().getTime();
-                np.hasChanged = true;
-                np.noteData.notes[np.noteData.current].title = evt.target.value;
-            });
-            title.addEventListener("focus", function () {
-                this.style.outline = "none";
-            });
-            np.elem.title = title;
+.d4np_notepad {
+  margin-top: 5px;
+  height: 50% !important;
+  resize: none;
+}
 
-            const area = document.createElement("textarea");
-            area.style.width = "100%";
-            area.style.height = "50%";
-            area.style.color = "#FFF";
-            area.style.padding = "10px";
-            area.style.resize = "none";
-            area.style.border = "none";
-            area.style.borderTop = "1px dotted #999";
-            area.style.backgroundColor = "transparent";
-            area.addEventListener("input", evt => {
-                np.lastChange = new Date().getTime();
-                np.hasChanged = true;
-                np.noteData.notes[np.noteData.current].content = evt.target.value;
-            });
-            area.addEventListener("focus", function () {
-                this.style.outline = "none";
-            });
-            np.elem.area = area;
+.d4ui_input {
+  padding: 10px;
+  height: 30px;
+  width: 100%;
+  color: #FFF;
+  border: none;
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
 
-            const [selectorWrap, selector] = np.createSelector(np, {
-                add: np.addNote,
-                remove: np.removeNote,
-                change: np.switchNote,
-            });
-            np.elem.selector = selector;
+.d4ui_input:focus {
+  outline: none;
+}
 
-            np.elem.wrap.append(selectorWrap);
-            np.elem.wrap.append(title);
-            np.elem.wrap.append(area);
+.d4ui_selector_wrap {
+  display: flex;
+  gap: 3px;
+  margin: 5px 0;
+}
 
-        }
+.d4ui_selector_input {
+  width: 100%;
+  height: 30px;
+  padding: 0 5px;
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
 
-        createSelector(np, data) {
-            const wrap = document.createElement("div");
-            wrap.style.display = "flex";
-            wrap.style.gap = "3px";
-            wrap.style.margin = "5px 0";
+.d4ui_selector_input > option {
+  color: #000;
+}
 
-            const selector = document.createElement("select");
-            selector.style.width = "100%";
-            selector.style.height = "30px";
-            selector.style.padding = "0 5px";
-            selector.style.borderRadius = "16px";
-            selector.addEventListener("change", evt => {
-                data.change(np, evt.target.value);
-            });
+.d4ui_selector_input > option:nth-child(odd) {
+  background-color: #EEE;
+}
 
-            const btn = document.createElement("button");
-            btn.style.width = "30px";
-            btn.style.height = "30px";
-            btn.style.color = "#FFF";
-            btn.style.fontSize = "21px";
-            btn.style.border = "2px solid #999";
-            btn.style.borderRadius = "100%";
+.d4ui_selector_button {
+  width: 30px;
+  height: 30px;
+  color: #FFF;
+  font-size: 21px;
+  border: 2px solid #999;
+  border-radius: 100%;
+}
 
-            const btnAdd = btn.cloneNode();
-            btnAdd.textContent = "+";
-            btnAdd.style.backgroundColor = "#0F0";
+.d4ui_selector_button_add {
+  background-color: #0F0;
+}
 
-            const btnRemove = btn.cloneNode();
-            btnRemove.textContent = "-";
-            btnRemove.style.backgroundColor = "#F00";
+.d4ui_selector_button_remove {
+  background-color: #F00;
+}
+`;
+    document.body.append(css);
 
-            wrap.addEventListener("click", evt => {
-                if (evt.target === btnAdd) {
-                    data.add(np);
-                } else if (evt.target === btnRemove) {
-                    data.remove(np);
-                }
-
-            });
-
-            wrap.append(selector);
-            wrap.append(btnAdd);
-            wrap.append(btnRemove);
-
-            return [wrap, selector];
-        }
-        update(np) {
-            np.elem.title.value = np.noteData.notes[np.noteData.current].title;
-            np.elem.area.value = np.noteData.notes[np.noteData.current].content;
-
-            np.elem.selector.textContent = "";
-            for (let opt in np.elem.selector.options) {
-                np.elem.selector.options.remove(0);
-            }
-            np.noteData.notes.forEach((note, index) => {
-                let opt = document.createElement("option");
-                opt.value = index;
-                opt.textContent = note.title;
-                opt.style.width = "90%";
-                if (index % 2 === 0) {
-                    opt.style.backgroundColor = "#CCC";
-                }
-                np.elem.selector.append(opt);
-            });
-            np.elem.selector.value = np.noteData.current;
-        }
-        load(np) {
-            np.noteData = JSON.parse(localStorage.getItem("d4np_noteData")) || {
-                notes: [{
-                    title: "New Note",
-                    content: "",
-                }],
-                current: 0,
-            };
-        }
-        save(np) {
-            if (new Date().getTime() - np.lastChange > 1000 && np.hasChanged) {
-                np.hasChanged = false;
-                localStorage.setItem("d4np_noteData", JSON.stringify(np.noteData));
-                np.update(np);
-            }
-        }
-        switchNote(np, value) {
-            np.lastChange = new Date().getTime() - 1000;
-            np.hasChanged = true;
-            np.noteData.current = value;
-        }
-
-        addNote(np) {
-            np.noteData.notes.push({
-                title: "New Note",
-                content: "",
-            });
-            np.noteData.current = np.noteData.notes.length - 1;
-            np.lastChange = new Date().getTime() - 1000;
-            np.hasChanged = true;
-        }
-        removeNote(np) {
-            if (confirm("Are you sure you want to remove this note?")) {
-                np.noteData.notes.splice(np.noteData.current, 1);
-                np.noteData.current = Math.max(np.noteData.current - 1, 0);
-                if (!np.noteData.notes.length) {
-                    np.noteData.notes.push({
-                        title: "New Note",
-                        content: "",
-                    });
-                }
-                np.lastChange = new Date().getTime() - 1000;
-                np.hasChanged = true;
-            }
-        }
-    }
-
-    class UserInterface {
+        class UserInterface {
         addSection(parent, name, content) {
             const tabContainer = parent.querySelector(".MuiTabs-flexContainer");
             const sectionContainer = parent.querySelector("[class^=TabsComponent_tabPanelsContainer__]");
@@ -241,9 +130,167 @@
             return clone;
         }
 
+        createSelector(data) {
+            const elem = {};
+            elem.wrap = document.createElement("div");
+            elem.wrap.className = "d4ui_selector_wrap";
+
+            elem.select = document.createElement("select");
+            elem.select.className = "d4ui_input d4ui_selector_input";
+            elem.select.addEventListener("change", evt => {
+                data.changeCallback(data.ref, evt.target.value);
+            });
+            elem.wrap.append(elem.select);
+
+            const btns = [["add", "+"], ["remove", "-"]];
+            btns.forEach(btn => {
+                if (btn[0] + "Callback" in data && typeof data[btn[0] + "Callback"] === "function") {
+                    const el = document.createElement("button");
+                    el.className = "d4ui_selector_button d4ui_selector_button_" + btn[0];
+                    el.textContent = btn[1];
+                    el.addEventListener("click", evt => {
+                        data[btn[0] + "Callback"](data.ref, evt);
+                    });
+                    elem.wrap.append(el);
+                }
+            });
+
+            return elem;
+        }
     }
 
     const ui = new UserInterface();
+
+    class Notepad {
+        elem = {};
+        noteData = {
+            notes: [],
+            current: 0,
+        };
+        currentNote = 0;
+        lastChange = 0;
+        constructor() {
+            this.load(this);
+            this.create(this);
+            this.initEditor(this);
+            this.update(this);
+        }
+        create(np) {
+            np.elem.wrap = document.createElement("div");
+            np.elem.wrap.classList.add("d4np_wrap");
+
+            const title = document.createElement("input");
+            title.className = "d4ui_input";
+            title.addEventListener("input", evt => {
+                np.onInput(np, "title", evt);
+            });
+            np.elem.title = title;
+
+            const area = document.createElement("textarea");
+            area.id = "d4np_notepad";
+            area.className = "d4np_notepad d4ui_input";
+            area.addEventListener("input", evt => {
+                np.onInput(np, "content", evt);
+            });
+            np.elem.area = area;
+
+            const selector = ui.createSelector({
+                ref: np,
+                addCallback: np.addNote,
+                removeCallback: np.removeNote,
+                changeCallback: np.switchNote,
+            });
+            np.elem.selector = selector.select;
+
+            np.elem.wrap.append(selector.wrap);
+            np.elem.wrap.append(title);
+            np.elem.wrap.append(area);
+        }
+
+        initEditor(np) {
+            const init = setInterval(_=>{
+                const editor = document.querySelector("#d4np_notepad");
+                if (editor) {
+                    clearInterval(init);
+                    // Init Editor Plugin
+                }
+            }, 250);
+        }
+
+        update(np) {
+            np.elem.title.value = np.noteData.notes[np.noteData.current].title;
+            np.elem.area.value = np.noteData.notes[np.noteData.current].content;
+
+            np.elem.selector.textContent = "";
+            for (let opt in np.elem.selector.options) {
+                np.elem.selector.options.remove(0);
+            }
+            np.noteData.notes.forEach((note, index) => {
+                let opt = document.createElement("option");
+                opt.value = index;
+                opt.textContent = note.title;
+                np.elem.selector.append(opt);
+            });
+            np.elem.selector.value = np.noteData.current;
+        }
+        load(np) {
+            np.noteData = JSON.parse(localStorage.getItem("d4np_noteData")) || {
+                notes: [{
+                    title: "New Note",
+                    content: "",
+                }],
+                current: 0,
+            };
+        }
+        save(np) {
+            setTimeout(_=> {
+                if (new Date().getTime() - np.lastChange > 1000) {
+                    localStorage.setItem("d4np_noteData", JSON.stringify(np.noteData));
+                    np.update(np);
+                }
+            }, 1500);
+        }
+
+        onInput(np, type, evt) {
+            np.lastChange = new Date().getTime();
+            np.noteData.notes[np.noteData.current][type] = evt.target.value;
+            np.save(np);
+        }
+
+        switchNote(np, value) {
+            np.lastChange = new Date().getTime() - 1000;
+            np.noteData.current = value;
+            np.update(np);
+            np.save(np);
+        }
+
+        addNote(np) {
+            np.noteData.notes.push({
+                title: "New Note",
+                content: "",
+            });
+            np.noteData.current = np.noteData.notes.length - 1;
+            np.lastChange = new Date().getTime() - 1000;
+            np.update(np);
+            np.save(np);
+        }
+        removeNote(np) {
+            if (confirm("Are you sure you want to remove this note?")) {
+                np.noteData.notes.splice(np.noteData.current, 1);
+                np.noteData.current = Math.max(np.noteData.current - 1, 0);
+                if (!np.noteData.notes.length) {
+                    np.noteData.notes.push({
+                        title: "New Note",
+                        content: "",
+                    });
+                }
+                np.lastChange = new Date().getTime() - 1000;
+                np.update(np);
+                np.save(np);
+            }
+        }
+    }
+
     const init = () => {
         const notepad = new Notepad();
         const tabsParent = document.querySelector("[class^=CharacterManagement_tabsComponentContainer__]");

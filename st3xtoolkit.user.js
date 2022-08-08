@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MilkyWayIdle Notepad
-// @version      0.1
-// @description  adds an ingame notepad that saves in localStorage
+// @name         Statist3x Toolkit
+// @version      0.2
+// @description  MilkyWayIdle Toolkit to aid in statistical analyzation
 // @author       D4M4G3X
 // @match        https://www.milkywayidle.com/game
 // @grant        none
@@ -16,7 +16,7 @@
   font-weight: 300;
   height: 90%;
   padding: 10px 20px 10px 5px;
-  border-radius: 32px;
+  border-radius: 16px;
   overflow: hidden;
   background-color: rgba(0, 0, 0, 0.1);
 }
@@ -63,6 +63,10 @@
   background-color: #EEE;
 }
 
+.d4ui_selector_input > option:nth-child(even) {
+  background-color: #DDD;
+}
+
 .d4ui_selector_button {
   width: 30px;
   height: 30px;
@@ -79,10 +83,63 @@
 .d4ui_selector_button_remove {
   background-color: #F00;
 }
+
+/* ### MAIN ### */
+.st3x_wrap {
+  height: 80%;
+}
+
+/* ### TIMER ### */
+.st3x_timer_wrap {
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.st3x_timer_control > button {
+  margin: 5px;
+  padding: 5px 10px;
+  border: 2px solid #999;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.st3x_timer_control > .st3x_timer_action_start {
+  background-color: #0F0;
+}
+
+.st3x_timer_control > .st3x_timer_action_stop {
+  background-color: #F00;
+}
+
+.st3x_timer_control > .st3x_timer_action_break {
+  background-color: #0FF;
+}
+
+.st3x_timer_breaks {
+  margin: 5px;
+  height: 100px;
+  overflow-y: scroll;
+}
+
+.st3x_timer_breaks > div {
+  height: 25px;
+}
+
+.st3x_timer_breaks > div:nth-child(odd) {
+  background-color: rgba(0, 0, 0, 0.2);
+}
 `;
     document.body.append(css);
 
-        class UserInterface {
+    const ucfirst = str => str.charAt(0).toUpperCase() + str.slice(1);
+
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
+
+    class UserInterface {
         addSection(parent, name, content) {
             const tabContainer = parent.querySelector(".MuiTabs-flexContainer");
             const sectionContainer = parent.querySelector("[class^=TabsComponent_tabPanelsContainer__]");
@@ -167,6 +224,7 @@
             notes: [],
             current: 0,
         };
+        timeout = null;
         currentNote = 0;
         lastChange = 0;
         constructor() {
@@ -243,7 +301,8 @@
             };
         }
         save(np) {
-            setTimeout(_=> {
+            clearTimeout(np.timeout);
+            np.timeout = setTimeout(_=> {
                 if (new Date().getTime() - np.lastChange > 1000) {
                     localStorage.setItem("d4np_noteData", JSON.stringify(np.noteData));
                     np.update(np);
@@ -291,10 +350,137 @@
         }
     }
 
+    class Timer {
+        ref = null;
+        count = 0;
+        breaks = [];
+        breaksRendered = -1;
+        started = false;
+        running = false;
+        timerElem = null;
+        breaksElem = null;
+        constructor(elem = {}) {
+            this.timerElem = elem.timerElem;
+            this.breaksElem = elem.breaksElem;
+            this.render();
+        }
+        tick() {
+            if (!this.running) return false;
+            let current = new Date().getTime();
+            this.count = +current - +this.startTime;
+            this.render();
+            setTimeout(_ => {
+                if (!this.running) return false;
+                this.tick();
+            }, randInt(150, 200));
+        }
+        render() {
+            if (this.timerElem) {
+                this.timerElem.textContent = this.toTimeString();
+            }
+
+            if (this.breaksElem && this.breaks.length > this.breaksRendered) {
+                this.breaksRendered = this.breaks.length;
+                this.breaksElem.innerHTML = "";
+                for (let i = Math.max(this.breaks.length, 10); i >= 0; i--) {
+                    let brkElem = document.createElement("div");
+                    brkElem.textContent = this.breaks.length > i ? this.toTimeString(this.breaks[i]) : "";
+                    this.breaksElem.prepend(brkElem);
+                }
+            }
+        }
+        break() {
+            if (!this.running) return false;
+            this.breaks.unshift(this.count);
+        }
+        start() {
+            if (this.running) return false;
+            this.running = true;
+            if (!this.started) {
+                this.started = true;
+                this.startTime = new Date().getTime();
+            }
+            this.tick();
+        }
+        stop() {
+            this.running = false;
+        }
+        clear() {
+            this.stop();
+            this.count = 0;
+            this.breaks = [];
+            this.breaksRendered = -1;
+            this.started = false;
+            this.render();
+        }
+        leadZero(n, count = 1) {
+            let res = n;
+            for (let i = 0; i < count; i++) {
+                if (n < parseInt(`1${"0".repeat(i + 1)}`)) {
+                    res = "0" + res;
+                }
+            }
+            return res;
+        }
+        toTimeString(count = this.count) {
+            let ms = this.leadZero(Math.floor(count % 1000), 2),
+                s = this.leadZero(Math.floor((count / 1000) % 60)),
+                m = this.leadZero(Math.floor((count / (1000 * 60)) % 60)),
+                h = this.leadZero(Math.floor((count / (1000 * 60 * 60)) % 24)),
+                d = this.leadZero(Math.floor((count / (1000 * 60 * 60 * 24)) % 365));
+            return `${d}:${h}:${m}:${s}.${ms}`;
+        }
+    }
+
+    const initTimer = () => {
+        const elem = {};
+
+        const elements = ["wrap", "timer", "control", "breaks"];
+        elements.forEach(el => {
+            elem[el] = document.createElement("div");
+            elem[el].className = "st3x_timer_" + el;
+        });
+
+        const timer = new Timer({
+            timerElem: elem.timer,
+            breaksElem: elem.breaks,
+        });
+
+        elem.control.addEventListener("click", evt => {
+            if (evt.target.className.includes("st3x_timer_action")) {
+                const action = evt.target.getAttribute("data-action");
+                timer[action]();
+            }
+        });
+
+        const buttons = ["start", "stop", "break", "clear"];
+        buttons.forEach(btn => {
+            const btnElem = document.createElement("button");
+            btnElem.className = "st3x_timer_action_" + btn;
+            btnElem.setAttribute("data-action", btn);
+            btnElem.textContent = ucfirst(btn);
+            elem.control.append(btnElem);
+        });
+
+        elem.wrap.append(elem.timer);
+        elem.wrap.append(elem.control);
+        elem.wrap.append(elem.breaks);
+        return elem;
+    }
+
     const init = () => {
-        const notepad = new Notepad();
+        const section = document.createElement("div");
+        section.className = "st3x_wrap";
+        const title = document.createElement("h3");
+        title.textContent = "Statist3x Toolkit";
+
         const tabsParent = document.querySelector("[class^=CharacterManagement_tabsComponentContainer__]");
-        ui.addSection(tabsParent, "Notepad", notepad.elem.wrap);
+        const notepad = new Notepad();
+        const timer = initTimer();
+        section.append(title);
+        section.append(timer.wrap);
+        section.append(notepad.elem.wrap);
+        ui.addSection(tabsParent, "ST3X", section);
     }
 
     const initRef = setInterval(_ => {
@@ -304,4 +490,3 @@
         }
     }, 250);
 })();
-

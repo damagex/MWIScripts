@@ -189,7 +189,7 @@
             clone.innerHTML = "";
             clone.append(content);
             clone.className += " d4ui_section_" + toSlug(name);
-            clone.className.add("TabPanel_hidden__26UM3");
+            clone.classList.add("TabPanel_hidden__26UM3");
             return clone;
         }
 

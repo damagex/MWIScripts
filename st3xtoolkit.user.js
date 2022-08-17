@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Statist3x Toolkit
-// @version      0.2
+// @version      0.2.2
 // @description  MilkyWayIdle Toolkit to aid in statistical analyzation
 // @author       D4M4G3X
-// @match        https://www.milkywayidle.com/game
+// @match        *://*.milkywayidle.com/game
 // @grant        none
 // ==/UserScript==
 
@@ -135,12 +135,15 @@
 `;
     document.body.append(css);
 
+    const toSlug = str => str.replace(/\s/g, "_").toLowerCase();
+
     const ucfirst = str => str.charAt(0).toUpperCase() + str.slice(1);
 
     const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
 
     class UserInterface {
         addSection(parent, name, content) {
+            parent = document.querySelector(`[class*=${parent}_tabsComponentContainer__]`)
             const tabContainer = parent.querySelector(".MuiTabs-flexContainer");
             const sectionContainer = parent.querySelector("[class^=TabsComponent_tabPanelsContainer__]");
             const tab = this.createTab(name);
@@ -153,18 +156,17 @@
                     root = evt.target.parentNode;
                 }
 
-                Array.from(tabContainer.children).forEach(el => {
+                [...tabContainer.children].forEach(el => {
                     let mode = el === root ? "add" : "remove";
                     el.classList[mode]("Mui-selected");
                     el.setAttribute("aria-selected", mode === "add");
                     el.setAttribute("tabindex", mode === "add" ? 0 : -1);
                 });
-                Array.from(sectionContainer.children).forEach(el => {
-                    if (root.classList.contains("d4ui_tab_" + name)) {
+                [...sectionContainer.children].forEach((el, index) => {
+                    if ([...tabContainer.children].indexOf(root) === index) {
+                        el.classList.remove("TabPanel_hidden__26UM3");
+                    } else {
                         el.classList.add("TabPanel_hidden__26UM3");
-                        if(el.classList.contains("d4ui_section_" + name)) {
-                            el.classList.remove("TabPanel_hidden__26UM3");
-                        }
                     }
                 });
             });
@@ -175,7 +177,7 @@
         createTab(name) {
             const clone = document.querySelector(".MuiTab-root").cloneNode();
             clone.textContent = name;
-            clone.className += " d4ui_tab_" + name;
+            clone.className += " d4ui_tab_" + toSlug(name);
             return clone;
         }
 
@@ -183,7 +185,7 @@
             const clone = document.querySelector("[class^=TabPanel_tabPanel__]").cloneNode();
             clone.innerHTML = "";
             clone.append(content);
-            clone.className += " d4ui_section_" + name;
+            clone.className += " d4ui_section_" + toSlug(name);
             return clone;
         }
 
@@ -474,13 +476,12 @@
         const title = document.createElement("h3");
         title.textContent = "Statist3x Toolkit";
 
-        const tabsParent = document.querySelector("[class^=CharacterManagement_tabsComponentContainer__]");
         const notepad = new Notepad();
         const timer = initTimer();
         section.append(title);
         section.append(timer.wrap);
         section.append(notepad.elem.wrap);
-        ui.addSection(tabsParent, "ST3X", section);
+        ui.addSection("CharacterManagement", "ST3X", section);
     }
 
     const initRef = setInterval(_ => {
@@ -490,3 +491,4 @@
         }
     }, 250);
 })();
+

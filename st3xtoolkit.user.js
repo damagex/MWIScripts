@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Statist3x Toolkit
-// @version      0.2.3
+// @version      0.2.4
 // @description  MilkyWayIdle Toolkit to aid in statistical analyzation
 // @author       D4M4G3X
 // @match        *://*.milkywayidle.com/game
@@ -189,6 +189,7 @@
             clone.innerHTML = "";
             clone.append(content);
             clone.className += " d4ui_section_" + toSlug(name);
+            clone.className.add("TabPanel_hidden__26UM3");
             return clone;
         }
 

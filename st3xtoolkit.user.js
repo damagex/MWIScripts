@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Statist3x Toolkit
-// @version      0.2.2
+// @version      0.2.3
 // @description  MilkyWayIdle Toolkit to aid in statistical analyzation
 // @author       D4M4G3X
 // @match        *://*.milkywayidle.com/game
@@ -178,6 +178,9 @@
             const clone = document.querySelector(".MuiTab-root").cloneNode();
             clone.textContent = name;
             clone.className += " d4ui_tab_" + toSlug(name);
+            clone.classList.remove("Mui-selected");
+            clone.setAttribute("tabindex", -1);
+            clone.setAttribute("aria-selected", false);
             return clone;
         }
 
